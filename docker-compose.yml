@@ -1,0 +1,137 @@
+# FlashSale — local development stack
+#
+# Services:
+#   postgres        durable state
+#   redis           queue broker + future atomic inventory
+#   migrate         one-shot Prisma migration runner
+#   backend         Express API
+#   worker          BullMQ booking worker (scale with --scale worker=N)
+#   expiration      BullMQ reservation-expiration sweeper
+#   frontend        Angular build served by nginx
+#
+# Start everything:      docker compose up --build
+# Scale workers:         docker compose up --scale worker=3
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: flashsale-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flashsale
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d flashsale']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: flashsale-redis
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Runs `prisma migrate deploy` once, then exits successfully.
+  migrate:
+    build:
+      context: ./backend
+      target: builder
+    container_name: flashsale-migrate
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/flashsale?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    container_name: flashsale-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/flashsale?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-me-please-1234567890}
+      JWT_EXPIRES_IN: 1h
+      CORS_ORIGIN: http://localhost:4200
+      LOG_LEVEL: info
+      QUEUE_CONCURRENCY: 5
+    ports:
+      - '4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:4000/api/v1/health/live || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Independent worker process: start as many as you need.
+  worker:
+    build:
+      context: ./backend
+      target: runtime
+    command: ['node', 'src/workers/booking.worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/flashsale?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-me-please-1234567890}
+      QUEUE_CONCURRENCY: 5
+      LOG_LEVEL: info
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  expiration:
+    build:
+      context: ./backend
+      target: runtime
+    command: ['node', 'src/workers/expiration.worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/flashsale?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-me-please-1234567890}
+      EXPIRATION_SWEEP_INTERVAL_MS: 60000
+      LOG_LEVEL: info
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: flashsale-frontend
+    ports:
+      - '4200:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

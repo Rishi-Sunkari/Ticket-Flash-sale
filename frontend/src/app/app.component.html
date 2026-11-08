@@ -1,0 +1,66 @@
+<div class="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+  <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <a routerLink="/events" class="flex items-center gap-2">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">FS</span>
+        <span class="text-lg font-bold tracking-tight">FlashSale</span>
+      </a>
+
+      <nav class="flex items-center gap-1 text-sm font-medium text-slate-600">
+        <a
+          routerLink="/events"
+          routerLinkActive="text-brand-700"
+          class="rounded-lg px-3 py-2 hover:bg-slate-100"
+        >
+          Events
+        </a>
+
+        @if (auth.isAuthenticated()) {
+          <a
+            routerLink="/bookings"
+            routerLinkActive="text-brand-700"
+            class="rounded-lg px-3 py-2 hover:bg-slate-100"
+          >
+            My bookings
+          </a>
+        }
+
+        @if (auth.isAdmin()) {
+          <a
+            routerLink="/admin"
+            routerLinkActive="text-brand-700"
+            class="rounded-lg px-3 py-2 hover:bg-slate-100"
+          >
+            Admin
+          </a>
+        }
+      </nav>
+
+      <div class="flex items-center gap-3">
+        @if (auth.isAuthenticated()) {
+          <div class="hidden text-right sm:block">
+            <p class="text-sm font-semibold leading-tight">{{ auth.user()?.name }}</p>
+            <p class="text-xs text-slate-500">{{ auth.user()?.role }}</p>
+          </div>
+          <button type="button" class="btn-secondary" (click)="auth.logout()">Sign out</button>
+        } @else {
+          <a routerLink="/login" class="btn-secondary">Sign in</a>
+          <a routerLink="/register" class="btn-primary">Create account</a>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+    <router-outlet />
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white py-4">
+    <div class="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-1 px-4 text-xs text-slate-500 sm:flex-row">
+      <span>FlashSale — ticket flash-sale platform</span>
+      <span>© {{ currentYear }} · Built for learning distributed systems</span>
+    </div>
+  </footer>
+</div>
+
+<app-toast-container />

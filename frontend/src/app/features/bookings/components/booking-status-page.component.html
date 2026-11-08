@@ -1,0 +1,85 @@
+<section class="mx-auto max-w-2xl space-y-6">
+  <a routerLink="/bookings" class="text-sm font-medium text-brand-700 hover:underline">
+    ← My bookings
+  </a>
+
+  @if (loading()) {
+    <app-loading-spinner label="Loading booking…" />
+  } @else if (errorMessage()) {
+    <div class="card p-6">
+      <p class="text-sm font-medium text-rose-700">{{ errorMessage() }}</p>
+    </div>
+  } @else {
+    @if (booking(); as current) {
+    <div class="card p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">Booking status</h1>
+          <p class="mt-1 font-mono text-xs text-slate-400">{{ current.id }}</p>
+        </div>
+        <app-status-badge [status]="current.status" />
+      </div>
+
+      @if (current.event; as event) {
+        <dl class="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-slate-500">Event</dt>
+            <dd class="font-medium text-slate-900">{{ event.title }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Venue</dt>
+            <dd class="font-medium text-slate-900">{{ event.venue }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Tickets</dt>
+            <dd class="font-medium text-slate-900">{{ current.quantity }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Total</dt>
+            <dd class="font-medium text-slate-900">
+              {{ current.totalPriceCents | money: current.currency }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Requested</dt>
+            <dd class="font-medium text-slate-900">
+              {{ current.createdAt | date: 'd MMM y, h:mm:ss a' }}
+            </dd>
+          </div>
+          @if (current.reservedUntil) {
+            <div>
+              <dt class="text-slate-500">Reserved until</dt>
+              <dd class="font-medium text-slate-900">
+                {{ current.reservedUntil | date: 'd MMM y, h:mm a' }}
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+
+      @if (current.status === 'PROCESSING') {
+        <div class="mt-6 flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span class="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span>
+          <span>
+            Your request is in the queue and is being processed by a worker.
+            @if (polling()) {
+              This page refreshes automatically.
+            }
+          </span>
+        </div>
+      }
+
+      @if (current.status === 'FAILED' && current.failureReason) {
+        <p class="mt-6 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {{ current.failureReason }}
+        </p>
+      }
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a routerLink="/events" class="btn-secondary">Browse events</a>
+        <a routerLink="/bookings" class="btn-secondary">All my bookings</a>
+      </div>
+    </div>
+    }
+  }
+</section>

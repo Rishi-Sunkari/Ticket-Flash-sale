@@ -1,0 +1,48 @@
+# .gitignore — Node / Prisma / Angular / Docker
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Prisma generated artefacts
+backend/prisma/migrations/**/migration_lock.toml.bak
+**/.prisma/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data / coverage
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Angular
+frontend/.angular/
+frontend/dist/
+frontend/.sass-cache/
+frontend/.cache/
+
+# Test output
+backend/coverage/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build artefacts
+dist/
+build/

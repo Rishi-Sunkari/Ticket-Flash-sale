@@ -1,0 +1,133 @@
+// FlashSale — data model.
+//
+// Teaching notes
+// --------------
+// * `capacity` / `reservedCount` are the *durable* record of inventory.
+//   During the flash sale the authoritative counter will live in Redis so that
+//   reservations are atomic and never touch PostgreSQL on the hot path. These
+//   columns stay here so the truth can be rebuilt and audited.
+// * Money is stored in minor units (`priceCents`) as an integer. Floating point
+//   money is a well-known source of rounding bugs; Redis Lua arithmetic also
+//   only understands integers.
+// * Status is a database enum, so an invalid status cannot be written even by a
+//   buggy worker or a manual SQL session.
+// * CHECK constraints (added in the initial migration) are the last line of
+//   defence for quantity/inventory invariants.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum BookingStatus {
+  PROCESSING
+  RESERVED
+  PAYMENT_PENDING
+  CONFIRMED
+  FAILED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings Booking[]
+  events   Event[]   @relation("EventCreator")
+
+  @@index([role])
+  @@map("users")
+}
+
+model Event {
+  id            String   @id @default(uuid()) @db.Uuid
+  title         String
+  description   String
+  venue         String
+  startsAt      DateTime
+  currency      String   @default("INR")
+  capacity      Int
+  reservedCount Int      @default(0)
+  priceCents    Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdById String @db.Uuid
+  createdBy   User   @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  bookings Booking[]
+
+  @@index([startsAt])
+  @@index([createdById])
+  @@map("events")
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @db.Uuid
+  eventId         String        @db.Uuid
+  quantity        Int
+  unitPriceCents  Int
+  totalPriceCents Int
+  status          BookingStatus @default(PROCESSING)
+
+  // --- Extension points (populated in later phases) ---------------------------
+  // Idempotency: the API already accepts an `Idempotency-Key` header and stores
+  // it here. The unique index makes a duplicate submission detectable; the
+  // "return the original booking" behaviour is added with the booking phase.
+  idempotencyKey String?
+  jobId          String?
+  failureReason  String?
+  reservedUntil  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  payment Payment?
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([eventId, status])
+  @@index([status, reservedUntil])
+  @@map("bookings")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  bookingId         String        @unique @db.Uuid
+  provider          String        @default("MANUAL")
+  providerReference String?
+  amountCents       Int
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("payments")
+}

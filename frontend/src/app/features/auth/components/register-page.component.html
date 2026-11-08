@@ -1,0 +1,80 @@
+<div class="mx-auto max-w-md">
+  <div class="card p-6">
+    <h1 class="text-xl font-bold text-slate-900">Create your account</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      Registration takes a second — you only need an email and a password.
+    </p>
+
+    <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div>
+        <label class="field-label" for="name">Full name</label>
+        <input
+          id="name"
+          type="text"
+          class="field-input"
+          formControlName="name"
+          autocomplete="name"
+          appAutofocus
+        />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <p class="field-error">Enter your name (2–80 characters).</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          class="field-input"
+          formControlName="email"
+          autocomplete="email"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <p class="field-error">Enter a valid email address.</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          class="field-input"
+          formControlName="password"
+          autocomplete="new-password"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <p class="field-error">Use at least 8 characters.</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="confirmPassword">Confirm password</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          class="field-input"
+          formControlName="confirmPassword"
+          autocomplete="new-password"
+        />
+        @if (form.errors?.['passwordsMismatch'] && form.controls.confirmPassword.touched) {
+          <p class="field-error">Passwords do not match.</p>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+      }
+
+      <button type="submit" class="btn-primary w-full" [disabled]="submitting()">
+        {{ submitting() ? 'Creating account…' : 'Create account' }}
+      </button>
+    </form>
+
+    <p class="mt-4 text-sm text-slate-500">
+      Already registered?
+      <a routerLink="/login" class="font-semibold text-brand-700 hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>

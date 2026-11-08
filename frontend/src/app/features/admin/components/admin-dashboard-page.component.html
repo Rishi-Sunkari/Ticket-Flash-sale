@@ -1,0 +1,149 @@
+<section class="space-y-6">
+  <header class="flex items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Admin dashboard</h1>
+      <p class="mt-1 text-sm text-slate-500">Inventory, bookings and revenue at a glance.</p>
+    </div>
+    <button type="button" class="btn-secondary" (click)="load()" [disabled]="loading()">Refresh</button>
+  </header>
+
+  @if (loading()) {
+    <app-loading-spinner label="Loading dashboard…" />
+  } @else if (errorMessage()) {
+    <div class="card p-6">
+      <p class="text-sm font-medium text-rose-700">{{ errorMessage() }}</p>
+    </div>
+  } @else {
+    @if (overview(); as data) {
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total bookings</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ totalBookings() }}</p>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Processing</p>
+        <p class="mt-2 text-2xl font-bold text-amber-600">{{ data.bookingsByStatus.PROCESSING }}</p>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirmed</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-600">{{ data.bookingsByStatus.CONFIRMED }}</p>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirmed revenue</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ data.revenueCents | money: 'INR' }}</p>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <div class="card p-6">
+        <h2 class="text-base font-semibold text-slate-900">Ticket inventory</h2>
+
+        @if (data.inventory.length === 0) {
+          <p class="mt-3 text-sm text-slate-500">No events yet — create one on the right.</p>
+        } @else {
+          <table class="mt-4 w-full text-left text-sm">
+            <thead class="text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="pb-2 font-semibold">Event</th>
+                <th class="pb-2 text-right font-semibold">Available</th>
+                <th class="pb-2 text-right font-semibold">Reserved</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (item of data.inventory; track item.eventId) {
+                <tr>
+                  <td class="py-2">
+                    <p class="font-medium text-slate-900">{{ item.title }}</p>
+                    <p class="text-xs text-slate-500">{{ item.startsAt | date: 'd MMM y · h:mm a' }}</p>
+                  </td>
+                  <td class="py-2 text-right font-semibold" [class]="item.availableTickets === 0 ? 'text-rose-600' : 'text-emerald-600'">
+                    {{ item.availableTickets }}
+                  </td>
+                  <td class="py-2 text-right text-slate-600">{{ item.reservedTickets }} / {{ item.capacity }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <div class="card p-6">
+        <h2 class="text-base font-semibold text-slate-900">Create event</h2>
+
+        <form class="mt-4 space-y-3" [formGroup]="createEventForm" (ngSubmit)="createEvent()" novalidate>
+          <div>
+            <label class="field-label" for="title">Title</label>
+            <input id="title" class="field-input" formControlName="title" />
+          </div>
+          <div>
+            <label class="field-label" for="venue">Venue</label>
+            <input id="venue" class="field-input" formControlName="venue" />
+          </div>
+          <div>
+            <label class="field-label" for="description">Description</label>
+            <textarea id="description" rows="3" class="field-input" formControlName="description"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="field-label" for="startsAt">Starts at</label>
+              <input id="startsAt" type="datetime-local" class="field-input" formControlName="startsAt" />
+            </div>
+            <div>
+              <label class="field-label" for="capacity">Capacity</label>
+              <input id="capacity" type="number" min="1" class="field-input" formControlName="capacity" />
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="priceRupees">Ticket price (₹)</label>
+            <input id="priceRupees" type="number" min="0" step="0.01" class="field-input" formControlName="priceRupees" />
+          </div>
+
+          <button type="submit" class="btn-primary w-full" [disabled]="creating()">
+            {{ creating() ? 'Creating…' : 'Create event' }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card p-6">
+      <h2 class="text-base font-semibold text-slate-900">Recent bookings</h2>
+
+      @if (data.recentBookings.length === 0) {
+        <p class="mt-3 text-sm text-slate-500">No bookings yet.</p>
+      } @else {
+        <table class="mt-4 w-full text-left text-sm">
+          <thead class="text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="pb-2 font-semibold">Customer</th>
+              <th class="pb-2 font-semibold">Event</th>
+              <th class="pb-2 text-right font-semibold">Tickets</th>
+              <th class="pb-2 text-right font-semibold">Total</th>
+              <th class="pb-2 font-semibold">Status</th>
+              <th class="pb-2 font-semibold">Requested</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (booking of data.recentBookings; track booking.id) {
+              <tr>
+                <td class="py-2">
+                  <p class="font-medium text-slate-900">{{ booking.customer.name }}</p>
+                  <p class="text-xs text-slate-500">{{ booking.customer.email }}</p>
+                </td>
+                <td class="py-2 text-slate-700">{{ booking.event?.title }}</td>
+                <td class="py-2 text-right text-slate-700">{{ booking.quantity }}</td>
+                <td class="py-2 text-right text-slate-700">
+                  {{ booking.totalPriceCents | money: booking.currency }}
+                </td>
+                <td class="py-2"><app-status-badge [status]="booking.status" /></td>
+                <td class="py-2 text-xs text-slate-500">
+                  {{ booking.createdAt | date: 'd MMM, h:mm a' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+    }
+  }
+</section>

@@ -1,0 +1,70 @@
+<section class="mx-auto max-w-2xl space-y-6">
+  <a [routerLink]="['/events', id()]" class="text-sm font-medium text-brand-700 hover:underline">
+    ← Back to event
+  </a>
+
+  @if (loading()) {
+    <app-loading-spinner label="Loading event…" />
+  } @else {
+    @if (event(); as current) {
+    <div class="card p-6">
+      <h1 class="text-xl font-bold text-slate-900">Book tickets</h1>
+      <p class="mt-1 text-sm text-slate-500">{{ current.title }}</p>
+
+      <dl class="mt-4 grid gap-2 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="text-slate-500">When</dt>
+          <dd class="font-medium text-slate-900">{{ current.startsAt | date: 'd MMM y · h:mm a' }}</dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Ticket price</dt>
+          <dd class="font-medium text-slate-900">{{ current.priceCents | money: current.currency }}</dd>
+        </div>
+      </dl>
+
+      @if (current.isSoldOut) {
+        <p class="mt-5 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+          This event just sold out.
+        </p>
+      } @else {
+        <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div>
+            <label class="field-label" for="quantity">Number of tickets</label>
+            <select id="quantity" class="field-input" formControlName="quantity">
+              @for (option of quantityOptions(); track option) {
+                <option [value]="option">{{ option }}</option>
+              }
+            </select>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ current.availableTickets }} tickets available · max {{ maxSelectable() }} per booking
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
+            <span class="text-sm text-slate-600">Total</span>
+            <span class="text-lg font-bold text-slate-900">
+              {{ totalCents() | money: current.currency }}
+            </span>
+          </div>
+
+          @if (errorMessage()) {
+            <p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+          }
+
+          <button type="submit" class="btn-primary w-full" [disabled]="submitting()">
+            {{ submitting() ? 'Submitting request…' : 'Confirm booking request' }}
+          </button>
+
+          <p class="text-center text-xs text-slate-500">
+            Your request is queued and processed in order. You will see a live status on the next page.
+          </p>
+        </form>
+      }
+    </div>
+    } @else if (errorMessage()) {
+      <div class="card p-6">
+        <p class="text-sm font-medium text-rose-700">{{ errorMessage() }}</p>
+      </div>
+    }
+  }
+</section>
