@@ -8,6 +8,11 @@ This repository currently contains **Phase 0 — the base project**. It boots, i
 persists data, it queues jobs, and it has the seams (interfaces + module
 boundaries) where the concurrency-critical logic will be added incrementally.
 
+> **Setting up a new machine or joining the project?** Follow
+> **[SETUP.md](./SETUP.md)** — pinned versions, per-OS installation, database and
+> Redis setup, the exact run commands, a verification checklist and the Git
+> branch workflow. The rest of this file explains *how the system is designed*.
+
 ---
 
 ## 1. What is implemented today
