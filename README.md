@@ -634,5 +634,3 @@ payment, expiration, load test.
 6. **Money as integers.** No floating point anywhere in the money path.
 7. **One inventory seam.** Only `inventory.service.js` may decrement stock. Small
    invariants that are enforced in one place are the ones that survive.
-#   T i c k e t - F l a s h - s a l e  
- 

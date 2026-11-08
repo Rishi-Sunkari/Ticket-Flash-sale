@@ -1,0 +1,48 @@
+# Normalize line endings in the repository.
+#
+# With `text=auto`, git stores LF in the repository and checks files out using
+# the platform default (CRLF on Windows when core.autocrlf=true). This makes
+# diffs stable and identical for Windows, macOS and Linux contributors, instead
+# of depending on each machine's core.autocrlf setting.
+#
+# Explicit rules below override that default where it matters.
+* text=auto
+
+# --- Text sources & config -------------------------------------------------
+*.md        text
+*.js        text
+*.mjs       text
+*.cjs        text
+*.ts        text
+*.json      text
+*.css        text
+*.html      text
+*.prisma    text
+*.sql       text
+*.yml       text
+*.yaml      text
+*.toml      text
+*.conf      text
+*.txt       text
+*.example   text
+
+# Shell / Windows scripts: keep native endings so they execute correctly.
+*.sh        text eol=lf
+*.ps1       text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# --- Binary assets: never touch these --------------------------------------
+*.ico       binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.pdf       binary
+
+# --- Generated / dependency directories ------------------------------------
+package-lock.json text
